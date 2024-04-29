@@ -1,11 +1,12 @@
 # builder
-FROM golang:1.22 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.22 AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o mongodb-index-advisor .
+ARG TARGETOS TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o mongodb-index-advisor .
 RUN ls -lh /app/mongodb-index-advisor
 
 # runner
