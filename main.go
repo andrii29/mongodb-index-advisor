@@ -24,6 +24,7 @@ func main() {
 		mongoURIFlag     = flag.String("mongoURI", "mongodb://127.0.0.1:27017", "MongoDB connection URI")
 		dbNameFlag       = flag.String("dbName", "default", "MongoDB database name")
 		aiProvider       = flag.String("aiProvider", "openai", "AI provider to use (ollama, openai)")
+		ollamaModel      = flag.String("ollamaModel", "llama3", "Ollama model to use: llama3, mistral, etc")
 		openaiApiKeyFlag = flag.String("openaiApiKey", "", "OpenAI API key")
 		openaiMaxTokens  = flag.Int("openaiMaxTokens", 500, "OpenAI maximum tokens per query")
 		millis           = flag.Int("millis", 0, "Process queries with execution time >= millis")
@@ -156,17 +157,18 @@ func main() {
 			fmt.Println(response)
 			fmt.Println(hyphens)
 			fmt.Println()
+
 		case "ollama":
 			uri := "http://localhost:11434/v1/chat/completions"
-			model := "llama3"
 			defer cancel()
-			response, err := askOllama(uri, model, promptSystem, promptUser)
+			response, err := askOllama(uri, *ollamaModel, promptSystem, promptUser)
 			if err != nil {
 				log.Fatal("Failed to get response from Ollama: ", err)
 			}
 
 			// Print the response from Ollama
-			fmt.Println("Response from Ollama:")
+			fmt.Printf("Response from Ollama (%s):", *ollamaModel)
+			fmt.Println()
 			hyphens := strings.Repeat("-", 100)
 			fmt.Println(hyphens)
 			fmt.Println(response)
@@ -191,7 +193,7 @@ func removeKeysAndReplace(query bson.M, keysToRemove []string, replaceValue inte
 	return query
 }
 
-func askChatGPT(client *openai.Client, ctx context.Context, maxTokens int, promptSystem string, promptUser string) (string, error) {
+func askChatGPT(client *openai.Client, ctx context.Context, maxTokens int, promptSystem, promptUser string) (string, error) {
 	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -217,7 +219,7 @@ func askChatGPT(client *openai.Client, ctx context.Context, maxTokens int, promp
 	return resp.Choices[0].Message.Content, nil
 }
 
-func askOllama(uri, model string, promptSystem string, promptUser string) (string, error) {
+func askOllama(uri, model, promptSystem, promptUser string) (string, error) {
 	// Define the request body
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"model": model,
